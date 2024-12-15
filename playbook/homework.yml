@@ -1,0 +1,77 @@
+---
+- name: Set up backends
+  hosts: backends
+  vars_files:
+    - vars/homework.yml
+
+  tasks:
+    - name: Install Apache
+      apt: name=apache2 update_cache=yes state=latest
+
+    - name: Create document root
+      file:
+        path: "/var/www/{{ ansible_host }}"
+        state: directory
+        mode: '0755'
+
+    - name: Copy index page
+      template:
+        src: "files/index.html.j2"
+        dest: "/var/www/{{ ansible_host }}/index.html"
+
+    - name: Set up Apache virtualhost
+      template:
+        src: "files/apache.conf.j2"
+        dest: "/etc/apache2/sites-available/{{ ansible_host }}.conf"
+
+    - name: Enable new site
+      shell: /usr/sbin/a2ensite {{ ansible_host }}
+      notify: Reload Apache
+
+    - name: Disable default Apache site
+      shell: /usr/sbin/a2dissite 000-default.conf
+      when: disable_default
+      notify: Reload Apache
+
+  handlers:
+    - name: Reload Apache
+      service:
+        name: apache2
+        state: reloaded
+
+    - name: Restart Apache
+      service:
+        name: apache2
+        state: restarted
+
+- name: Set up frontend
+  hosts: nginx
+  tasks:
+    - name: Ensure Nginx is at the latest version
+      apt:
+        name: nginx
+        state: latest
+
+    - name: Copy configuration
+      copy:
+        src:  "{{ item.src }}"
+        dest: "{{ item.dst }}"
+      loop:
+        - src: "files/http_proxy.conf"
+          dst: "/etc/nginx/sites-available/"
+        - src: "files/balance.conf"
+          dst: "/etc/nginx/sites-available/"
+        - src: "files/nginx.conf"
+          dst: "/etc/nginx/"
+
+    - name: Build nginx
+      shell: |
+        rm -rf /etc/nginx/sites-enabled/http_proxy.conf /etc/nginx/sites-enabled/balance.conf /etc/nginx/sites-enabled/default
+        ln -s /etc/nginx/sites-available/http_proxy.conf /etc/nginx/sites-enabled/http_proxy.conf
+        ln -s /etc/nginx/sites-available/balance.conf /etc/nginx/sites-enabled/balance.conf
+
+    - name: Start Nginx
+      service:
+        name: nginx
+        state: started
+        enabled: yes

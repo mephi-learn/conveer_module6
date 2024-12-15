@@ -1,0 +1,29 @@
+services:
+  backend1:
+    container_name: backend1
+    image: backend1
+    build:
+      dockerfile: dockerfiles/backend.dockerfile
+  backend2:
+    container_name: backend2
+    image: backend2
+    build:
+      dockerfile: dockerfiles/backend.dockerfile
+  backend3:
+    container_name: backend3
+    image: backend3
+    build:
+      dockerfile: dockerfiles/backend.dockerfile
+
+  frontend:
+    container_name: frontend
+    image: frontend
+    build:
+      dockerfile: dockerfiles/frontend.dockerfile
+    ports:
+      - 53080:80
+
+networks:
+  default:
+    external: true
+    name: homework

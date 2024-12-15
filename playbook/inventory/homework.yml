@@ -1,0 +1,8 @@
+backends:
+  hosts:
+    backend1:
+    backend2:
+    backend3:
+nginx:
+  hosts:
+    frontend:
